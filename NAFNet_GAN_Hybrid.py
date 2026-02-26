@@ -1,18 +1,3 @@
-"""
-NAFNet-GAN: Hybrid NAFNet Generator + PatchGAN Discriminator
-with Combined L1 + SSIM + Adversarial Loss
-
-Architecture:
-  - Generator: MaskedNAFNet (proven 30-33 dB standalone)
-  - Discriminator: PatchGAN (70x70 patches)
-  - Loss: L1 + SSIM + Adversarial (GAN)
-
-Why This Should Work:
-  - NAFNet is already better than U-Net for restoration (proven results)
-  - Adding a discriminator should make outputs SHARPER
-  - SSIM loss preserves structural quality (best for blur/blocking)
-  - L1 loss ensures pixel accuracy
-  - NAFNet's residual learning (line 146: x + inp[:,:3]) is naturally compatible
 
 Supports: Gaussian Blur, White Noise, Blocking Artifacts
 Run on Kaggle with GPU
@@ -39,9 +24,9 @@ import copy
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
 
-# ============================================================================
-# GENERATOR: MaskedNAFNet (Same architecture that achieved 30-33 dB)
-# ============================================================================
+
+# GENERATOR: MaskedNAFNet 
+
 
 class LayerNorm2d(nn.Module):
     def __init__(self, channels, eps=1e-6):
@@ -176,9 +161,9 @@ class MaskedNAFNet(nn.Module):
         return x
 
 
-# ============================================================================
-# DISCRIMINATOR: PatchGAN (same as Pix2Pix)
-# ============================================================================
+
+# DISCRIMINATOR: PatchGAN
+
 
 class PatchGANDiscriminator(nn.Module):
     """
@@ -214,9 +199,9 @@ class PatchGANDiscriminator(nn.Module):
         return self.model(combined)
 
 
-# ============================================================================
+=
 # SSIM LOSS (Differentiable for training)
-# ============================================================================
+
 
 class SSIMLoss(nn.Module):
     """
@@ -261,9 +246,9 @@ class SSIMLoss(nn.Module):
         return 1.0 - ssim_map.mean()  # 1 - SSIM (so loss decreases as SSIM improves)
 
 
-# ============================================================================
+
 # COMBINED LOSS: L1 + SSIM + Adversarial
-# ============================================================================
+
 
 class NAFNetGANLoss:
     """
@@ -310,9 +295,9 @@ class NAFNetGANLoss:
         return (loss_real + loss_fake) * 0.5
 
 
-# ============================================================================
+
 # METRICS: PSNR and SSIM
-# ============================================================================
+
 
 def calculate_psnr(pred, target):
     """PSNR between tensors in [0, 1] range"""
@@ -334,9 +319,8 @@ def calculate_ssim_metric(pred, target, window_size=11):
     return ssim.mean().item()
 
 
-# ============================================================================
-# DATASET (Same as original NAFNet - [0, 1] normalization)
-# ============================================================================
+# DATASET 
+
 
 class MaskedRestorationDataset(Dataset):
     """Compatible with existing pipeline - normalizes to [0, 1]
@@ -406,9 +390,8 @@ class MaskedRestorationDataset(Dataset):
         return input_tensor, sharp
 
 
-# ============================================================================
 # CONFIGURATION
-# ============================================================================
+
 
 ARTIFACT_TYPE = 'blur'  # Options: 'blur', 'noise', 'blocking'
 
@@ -467,10 +450,8 @@ print(f"  Lambda SSIM:     {LAMBDA_SSIM}")
 print(f"  Lambda GAN:      {LAMBDA_GAN}")
 print(f"{'='*60}\n")
 
-
-# ============================================================================
 # SETUP
-# ============================================================================
+
 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 os.makedirs(f'{CHECKPOINT_DIR}/samples', exist_ok=True)
@@ -551,9 +532,9 @@ loss_fn = NAFNetGANLoss(
 )
 
 
-# ============================================================================
+
 # VISUALIZATION
-# ============================================================================
+
 
 def save_sample_images(generator, val_loader, epoch, save_dir):
     """Save quick sample grid during regular training checkpoints"""
@@ -686,10 +667,8 @@ def save_milestone_images(generator, val_loader, epoch, save_dir, label, psnr_va
     print(f"     - groundtruth_sample_1..{n}.png (ground truth images)")
     generator.train()
 
-
-# ============================================================================
 # TRAINING LOOP
-# ============================================================================
+
 
 g_losses = []
 d_losses = []
